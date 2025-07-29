@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지하철 역 랜덤 뽑기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #4ECDC4;
+            border-bottom-color: #4ECDC4;
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .draw-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(45deg, rgba(255,107,107,0.1), rgba(78,205,196,0.1));
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+
+        .round-number {
+            font-weight: bold;
+            color: #FF6B6B;
+            font-size: 1.3em;
+        }
+
+        .draw-button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .draw-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+        }
+
+        .draw-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cards-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .station-card {
+            background: white;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            width: 250px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .station-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.1;
+            transition: opacity 0.3s ease;
+            z-index: 1;
+        }
+
+        .station-card:hover {
+            transform: translateY(-5px);
+            border-color: #4ECDC4;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .station-card:hover::before {
+            opacity: 0.2;
+        }
+
+        .station-card.selected {
+            border-color: #FF6B6B;
+            color: white;
+            transform: translateY(-5px);
+        }
+
+        .station-card.selected::before {
+            opacity: 1;
+        }
+
+        .station-card-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .station-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .station-info {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .station-card.selected .station-info {
+            color: rgba(255,255,255,0.9);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .download-button {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin: 5px;
+        }
+
+        .download-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .excluded-count {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .loading {
+            color: #4ECDC4;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+
+        .success {
+            color: #44A08D;
+            font-weight: bold;
+        }
+
+        /* 히스토리 탭 관련 스타일 */
+        .history-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4ECDC4;
+        }
+
+        .history-item:nth-child(even) {
+            border-left-color: #FF6B6B;
+        }
+
+        .history-round {
+            font-weight: bold;
+            color: #333;
+            min-width: 80px;
+        }
+
+        .history-stations {
+            flex: 1;
+            text-align: center;
+            margin: 0 20px;
+        }
+
+        .history-vs {
+            color: #666;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+
+        .history-time {
+            font-size: 0.8em;
+            color: #888;
+            min-width: 120px;
+            text-align: right;
+        }
+
+        .selected-station-info {
+            font-size: 0.85em;
+            color: #FF6B6B;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* 수동 제외 탭 관련 스타일 */
+        .manual-exclude-section {
+            margin-bottom: 30px;
+        }
+
+        .station-search {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 20px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        .station-search:focus {
+            outline: none;
+            border-color: #4ECDC4;
+        }
+
+        .station-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .station-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .station-list-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .station-list-item.excluded {
+            background-color: #ffe6e6;
+            color: #d63384;
+        }
+
+        .exclude-button {
+            background: #FF6B6B;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+
+        .exclude-button:hover {
+            background: #e55555;
+        }
+
+        .include-button {
+            background: #4ECDC4;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+
+        .include-button:hover {
+            background: #3bb5b5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            .cards-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .station-card {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .history-item {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .history-stations {
+                margin: 10px 0;
+            }
+
+            .history-time {
+                text-align: center;
+                min-width: auto;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚇 지하철 역 랜덤 뽑기</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('draw')">추첨</button>
+            <button class="tab" onclick="switchTab('history')">히스토리</button>
+            <button class="tab" onclick="switchTab('exclude')">수동 제외</button>
+        </div>
+
+        <!-- 추첨 탭 -->
+        <div id="drawTab" class="tab-content active">
+            <div id="drawInfo" class="draw-info">
+                <div class="round-number">🎯 <span id="roundNumber">1</span>회차 추첨</div>
+            </div>
+            
+            <button id="drawButton" class="draw-button" disabled>추첨하기</button>
+            
+            <div id="cardsContainer" class="cards-container"></div>
+            
+            <div id="excludedCount" class="excluded-count"></div>
+        </div>
+
+        <!-- 히스토리 탭 -->
+        <div id="historyTab" class="tab-content">
+            <div class="history-controls">
+                <button class="download-button" onclick="exportHistory()">히스토리 내보내기</button>
+                <input type="file" id="historyImport" accept=".json" style="display: none;" onchange="importHistory(event)">
+                <button class="download-button" onclick="document.getElementById('historyImport').click()">히스토리 불러오기</button>
+                <button class="download-button" onclick="clearHistory()" style="background: linear-gradient(45deg, #FF6B6B, #e55555);">히스토리 초기화</button>
+            </div>
+            <div id="historyList" class="history-list">
+                <div style="text-align: center; color: #888; padding: 40px;">아직 추첨된 역이 없습니다.</div>
+            </div>
+        </div>
+
+        <!-- 수동 제외 탭 -->
+        <div id="excludeTab" class="tab-content">
+            <div class="manual-exclude-section">
+                <input type="text" id="stationSearch" class="station-search" placeholder="역 이름 검색...">
+                <div id="stationList" class="station-list"></div>
+                <button class="download-button" onclick="resetExclusions()">모든 제외 해제</button>
+            </div>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        let stations = [];
+        let lineColors = {};
+        let excludedStations = new Set();
+        let manualExcludedStations = new Set();
+        let selectedStation = null;
+        let drawnStations = [];
+        let historyData = [];
+        let currentRound = 1;
+
+        // 호선명에서만 앞의 0 제거하는 함수 (역 번호는 유지)
+        function formatLine(line) {
+            return line.replace(/^0+(\d+호선)/, '$1');
+        }
+
+        // 환승역 정보를 그룹화하는 함수
+        function groupStationsByName(stationData) {
+            const grouped = {};
+            stationData.forEach(station => {
+                const name = station.name;
+                if (!grouped[name]) {
+                    grouped[name] = {
+                        name: name,
+                        englishName: station.englishName,
+                        lines: [],
+                        codes: []
+                    };
+                }
+                grouped[name].lines.push(formatLine(station.line));
+                grouped[name].codes.push(station.code);
+            });
+            return Object.values(grouped);
+        }
+
+        // CSV 파일 파싱 함수
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                if (values.length >= 4) {
+                    data.push({
+                        name: values[0].trim(),
+                        englishName: values[1].trim(),
+                        line: values[2].trim(),
+                        code: values[3].trim()
+                    });
+                }
+            }
+
+            return groupStationsByName(data);
+        }
+
+        // 노선 색상 정보 파싱 함수
+        function parseLineColorsCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const colors = {};
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                if (values.length >= 2) {
+                    const lineName = formatLine(values[0].trim());
+                    const color = values[1].trim();
+                    colors[lineName] = color;
+                }
+            }
+
+            return colors;
+        }
+
+        // 노선 색상으로 그라데이션 생성
+        function createLineGradient(lines) {
+            const colors = lines.map(line => lineColors[line] || '#e0e0e0');
+            
+            if (colors.length === 1) {
+                return colors[0];
+            } else if (colors.length === 2) {
+                return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+            } else {
+                const step = 100 / (colors.length - 1);
+                const colorStops = colors.map((color, index) => 
+                    `${color} ${Math.round(index * step)}%`
+                ).join(', ');
+                return `linear-gradient(135deg, ${colorStops})`;
+            }
+        }
+
+        // CSV 파일들 불러오기
+        async function loadCSVs() {
+            const stationsUrl = 'https://raw.githubusercontent.com/karpinn/seoulmetro/main/1.csv';
+            const colorsUrl = 'https://raw.githubusercontent.com/karpinn/seoulmetro/main/2.csv';
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                showStatus('지하철역 정보를 불러오는 중...', 'loading');
+                
+                // 두 CSV 파일을 병렬로 로드
+                const [stationsResponse, colorsResponse] = await Promise.all([
+                    fetch(stationsUrl),
+                    fetch(colorsUrl)
+                ]);
+
+                if (!stationsResponse.ok) {
+                    throw new Error(`역 정보 로드 실패: HTTP ${stationsResponse.status}`);
+                }
+                if (!colorsResponse.ok) {
+                    throw new Error(`색상 정보 로드 실패: HTTP ${colorsResponse.status}`);
+                }
+                
+                const [stationsText, colorsText] = await Promise.all([
+                    stationsResponse.text(),
+                    colorsResponse.text()
+                ]);
+
+                // 데이터 파싱
+                lineColors = parseLineColorsCSV(colorsText);
+                stations = parseCSV(stationsText);
+                
+                if (stations.length === 0) {
+                    throw new Error('CSV 파일에서 유효한 데이터를 찾을 수 없습니다.');
+                }
+
+                showStatus(`성공적으로 ${stations.length}개의 지하철역을 불러왔습니다!`, 'success');
+                document.getElementById('drawButton').disabled = false;
+                updateExcludedCount();
+                updateStationList();
+                loadStoredData();
+                
+            } catch (error) {
+                console.error('CSV 로딩 오류:', error);
+                showStatus(`오류: ${error.message}`, 'error');
+            }
+        }
+
+        // 저장된 데이터 불러오기
+        function loadStoredData() {
+            // 히스토리 불러오기
+            const storedHistory = localStorage.getItem('subwayDrawHistory');
+            if (storedHistory) {
+                try {
+                    historyData = JSON.parse(storedHistory);
+                    currentRound = historyData.length + 1;
+                    document.getElementById('roundNumber').textContent = currentRound;
+                    updateHistoryDisplay();
+                    
+                    // 히스토리에서 제외된 역들 복원
+                    historyData.forEach(item => {
+                        excludedStations.add(item.station1);
+                        excludedStations.add(item.station2);
+                    });
+                } catch (e) {
+                    console.error('히스토리 불러오기 실패:', e);
+                }
+            }
+
+            // 수동 제외 목록 불러오기
+            const storedManualExclusions = localStorage.getItem('subwayManualExclusions');
+            if (storedManualExclusions) {
+                try {
+                    manualExcludedStations = new Set(JSON.parse(storedManualExclusions));
+                    manualExcludedStations.forEach(station => {
+                        excludedStations.add(station);
+                    });
+                } catch (e) {
+                    console.error('수동 제외 목록 불러오기 실패:', e);
+                }
+            }
+
+            updateExcludedCount();
+            updateStationList();
+        }
+
+        // 데이터 저장
+        function saveData() {
+            localStorage.setItem('subwayDrawHistory', JSON.stringify(historyData));
+            localStorage.setItem('subwayManualExclusions', JSON.stringify([...manualExcludedStations]));
+        }
+
+        // 상태 메시지 표시
+        function showStatus(message, type = '') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'success' || type === 'loading') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 제외된 역 수 업데이트
+        function updateExcludedCount() {
+            const excludedDiv = document.getElementById('excludedCount');
+            const totalStations = stations.length;
+            const excludedCount = excludedStations.size;
+            const remainingCount = totalStations - excludedCount;
+            
+            excludedDiv.textContent = `전체 ${totalStations}개 역 중 ${excludedCount}개 역 제외, ${remainingCount}개 역 추첨 가능`;
+        }
+
+        // 탭 전환
+        function switchTab(tabName) {
+            // 모든 탭 비활성화
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // 선택된 탭 활성화
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // 랜덤 추첨
+        function drawStations() {
+            const availableStations = stations.filter(station => !excludedStations.has(station.name));
+            
+            if (availableStations.length < 2) {
+                showStatus('추첨 가능한 역이 2개 미만입니다!', 'error');
+                return;
+            }
+
+            // 2개 역 랜덤 선택
+            const shuffled = [...availableStations].sort(() => Math.random() - 0.5);
+            drawnStations = shuffled.slice(0, 2);
+            selectedStation = null; // 선택 초기화
+
+            // 뽑힌 역들을 제외 목록에 추가
+            drawnStations.forEach(station => {
+                excludedStations.add(station.name);
+            });
+
+            // 히스토리에 추가 (선택된 역은 나중에 업데이트)
+            const historyItem = {
+                round: currentRound,
+                station1: drawnStations[0].name,
+                station2: drawnStations[1].name,
+                station1Data: drawnStations[0],
+                station2Data: drawnStations[1],
+                selectedStation: null, // 아직 선택되지 않음
+                timestamp: new Date().toLocaleString('ko-KR')
+            };
+            historyData.push(historyItem);
+
+            displayCards();
+            updateExcludedCount();
+            updateHistoryDisplay();
+            saveData();
+
+            // 다음 회차로 증가
+            currentRound++;
+            document.getElementById('roundNumber').textContent = currentRound;
+
+            // 추첨 가능한 역이 2개 미만이면 버튼 비활성화
+            const remainingStations = stations.filter(station => !excludedStations.has(station.name));
+            if (remainingStations.length < 2) {
+                document.getElementById('drawButton').disabled = true;
+                showStatus('모든 역이 추첨되었습니다!', 'success');
+            }
+        }
+
+        // 카드 표시
+        function displayCards() {
+            const container = document.getElementById('cardsContainer');
+            container.innerHTML = '';
+
+            drawnStations.forEach((station, index) => {
+                const card = document.createElement('div');
+                card.className = 'station-card';
+                card.onclick = () => selectCard(card, station);
+
+                const linesText = station.lines.join(', ');
+                const codesText = station.codes.join(', ');
+
+                // 노선 색상으로 배경 그라데이션 생성
+                const gradient = createLineGradient(station.lines);
+                card.style.setProperty('--line-gradient', gradient);
+                
+                // CSS로 그라데이션 적용
+                card.style.background = `linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.95)), ${gradient}`;
+                
+                // before 요소에 그라데이션 적용
+                const style = document.createElement('style');
+                style.textContent = `
+                    .station-card:nth-child(${index + 1})::before {
+                        background: ${gradient};
+                    }
+                `;
+                document.head.appendChild(style);
+
+                card.innerHTML = `
+                    <div class="station-card-content">
+                        <div class="station-name">${station.name}</div>
+                        <div class="station-info">
+                            <div>${station.englishName}</div>
+                            <div style="margin-top: 8px;">
+                                <div>${linesText}</div>
+                                <div style="font-size: 0.8em; margin-top: 4px;">${codesText}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // 카드 선택
+        function selectCard(cardElement, station) {
+            // 이전 선택 해제
+            document.querySelectorAll('.station-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // 새 선택 적용
+            cardElement.classList.add('selected');
+            selectedStation = station;
+
+            // 히스토리에서 현재 회차의 선택된 역 업데이트
+            if (historyData.length > 0) {
+                const currentHistoryItem = historyData[historyData.length - 1];
+                currentHistoryItem.selectedStation = station.name;
+                updateHistoryDisplay();
+                saveData();
+            }
+        }
+
+        // 히스토리 표시 업데이트
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            
+            if (historyData.length === 0) {
+                historyList.innerHTML = '<div style="text-align: center; color: #888; padding: 40px;">아직 추첨된 역이 없습니다.</div>';
+                return;
+            }
+
+            historyList.innerHTML = historyData.map(item => `
+                <div class="history-item">
+                    <div class="history-round">${item.round}회차</div>
+                    <div class="history-stations">
+                        ${item.station1} <span class="history-vs">vs</span> ${item.station2}
+                        ${item.selectedStation ? `<div class="selected-station-info">선택: ${item.selectedStation}</div>` : '<div class="selected-station-info">미선택</div>'}
+                    </div>
+                    <div class="history-time">${item.timestamp}</div>
+                </div>
+            `).join('');
+        }
+
+        // 히스토리 내보내기
+        function exportHistory() {
+            if (historyData.length === 0) {
+                showStatus('내보낼 히스토리가 없습니다!', 'error');
+                return;
+            }
+
+            const dataStr = JSON.stringify(historyData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `지하철역_추첨_히스토리_${new Date().toISOString().slice(0,10)}.json`;
+            link.click();
+        }
+
+        // 히스토리 불러오기
+        function importHistory(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (Array.isArray(importedData) && importedData.length > 0) {
+                        historyData = importedData;
+                        currentRound = historyData.length + 1;
+                        document.getElementById('roundNumber').textContent = currentRound;
+                        
+                        // 제외 목록 업데이트
+                        excludedStations.clear();
+                        manualExcludedStations.forEach(station => excludedStations.add(station));
+                        historyData.forEach(item => {
+                            excludedStations.add(item.station1);
+                            excludedStations.add(item.station2);
+                        });
+                        
+                        updateHistoryDisplay();
+                        updateExcludedCount();
+                        updateStationList();
+                        saveData();
+                        
+                        showStatus('히스토리를 성공적으로 불러왔습니다!', 'success');
+                    } else {
+                        throw new Error('올바르지 않은 히스토리 형식입니다.');
+                    }
+                } catch (error) {
+                    showStatus('히스토리 파일을 불러오는데 실패했습니다!', 'error');
+                    console.error('히스토리 불러오기 오류:', error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // 히스토리 초기화
+        function clearHistory() {
+            if (confirm('정말로 모든 히스토리를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                historyData = [];
+                currentRound = 1;
+                document.getElementById('roundNumber').textContent = currentRound;
+                
+                // 히스토리 기반 제외 목록 초기화 (수동 제외는 유지)
+                excludedStations.clear();
+                manualExcludedStations.forEach(station => excludedStations.add(station));
+                
+                updateHistoryDisplay();
+                updateExcludedCount();
+                updateStationList();
+                saveData();
+                
+                // 추첨 버튼 다시 활성화
+                document.getElementById('drawButton').disabled = false;
+                
+                showStatus('히스토리가 초기화되었습니다!', 'success');
+            }
+        }
+
+        // 역 목록 업데이트
+        function updateStationList() {
+            const stationList = document.getElementById('stationList');
+            const searchTerm = document.getElementById('stationSearch').value.toLowerCase();
+            
+            const filteredStations = stations.filter(station => 
+                station.name.toLowerCase().includes(searchTerm) ||
+                station.englishName.toLowerCase().includes(searchTerm)
+            );
+
+            stationList.innerHTML = filteredStations.map(station => {
+                const isExcluded = manualExcludedStations.has(station.name);
+                const isDrawnExcluded = excludedStations.has(station.name) && !manualExcludedStations.has(station.name);
+                
+                return `
+                    <div class="station-list-item ${isExcluded ? 'excluded' : ''}">
+                        <div>
+                            <div style="font-weight: bold;">${station.name}</div>
+                            <div style="font-size: 0.9em; color: #666;">${station.englishName} | ${station.lines.join(', ')}</div>
+                            ${isDrawnExcluded ? '<div style="font-size: 0.8em; color: #FF6B6B;">이미 추첨됨</div>' : ''}
+                        </div>
+                        <button class="${isExcluded ? 'include-button' : 'exclude-button'}" 
+                                onclick="${isExcluded ? 'includeStation' : 'excludeStation'}('${station.name}')">
+                            ${isExcluded ? '포함' : '제외'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 역 수동 제외
+        function excludeStation(stationName) {
+            manualExcludedStations.add(stationName);
+            excludedStations.add(stationName);
+            updateStationList();
+            updateExcludedCount();
+            saveData();
+            showStatus(`${stationName}역이 제외되었습니다.`, 'success');
+        }
+
+        // 역 포함 (제외 해제)
+        function includeStation(stationName) {
+            manualExcludedStations.delete(stationName);
+            
+            // 히스토리에 있는 역이 아니라면 전체 제외 목록에서도 제거
+            const isInHistory = historyData.some(item => 
+                item.station1 === stationName || item.station2 === stationName
+            );
+            
+            if (!isInHistory) {
+                excludedStations.delete(stationName);
+            }
+            
+            updateStationList();
+            updateExcludedCount();
+            saveData();
+            showStatus(`${stationName}역이 다시 포함되었습니다.`, 'success');
+            
+            // 추첨 가능한 역이 다시 2개 이상이면 버튼 활성화
+            const availableStations = stations.filter(station => !excludedStations.has(station.name));
+            if (availableStations.length >= 2) {
+                document.getElementById('drawButton').disabled = false;
+            }
+        }
+
+        // 모든 수동 제외 해제
+        function resetExclusions() {
+            if (confirm('모든 수동 제외를 해제하시겠습니까?')) {
+                manualExcludedStations.clear();
+                
+                // 제외 목록을 히스토리 기반으로만 재구성
+                excludedStations.clear();
+                historyData.forEach(item => {
+                    excludedStations.add(item.station1);
+                    excludedStations.add(item.station2);
+                });
+                
+                updateStationList();
+                updateExcludedCount();
+                saveData();
+                
+                // 추첨 가능한 역이 다시 2개 이상이면 버튼 활성화
+                const availableStations = stations.filter(station => !excludedStations.has(station.name));
+                if (availableStations.length >= 2) {
+                    document.getElementById('drawButton').disabled = false;
+                }
+                
+                showStatus('모든 수동 제외가 해제되었습니다!', 'success');
+            }
+        }
+
+        // 이벤트 리스너
+        document.getElementById('drawButton').onclick = drawStations;
+        document.getElementById('stationSearch').oninput = updateStationList;
+
+        // 페이지 로드 시 자동으로 CSV 파일들 로드
+        window.addEventListener('load', function() {
+            loadCSVs();
+        });
+    </script>
+</body>
+</html>
