@@ -418,8 +418,8 @@
 
         <!-- 추첨 탭 -->
         <div id="drawTab" class="tab-content active">
-            <div id="drawInfo" class="draw-info">
-                <div class="round-number">🎯 <span id="roundNumber">1</span>회차 추첨</div>
+            <div id="drawInfo" class="draw-info" style="display: none;">
+                <div class="round-number">🎯 <span id="roundNumber">1</span>회차 추첨 완료</div>
             </div>
             
             <button id="drawButton" class="draw-button" disabled>추첨하기</button>
@@ -462,7 +462,8 @@
         let selectedStation = null;
         let drawnStations = [];
         let historyData = [];
-        let currentRound = 1;
+        let currentRound = 0;
+        let hasDrawnBefore = false;
 
         // 호선명에서만 앞의 0 제거하는 함수 (역 번호는 유지)
         function formatLine(line) {
@@ -597,8 +598,15 @@
             if (storedHistory) {
                 try {
                     historyData = JSON.parse(storedHistory);
-                    currentRound = historyData.length + 1;
-                    document.getElementById('roundNumber').textContent = currentRound;
+                    currentRound = historyData.length;
+                    hasDrawnBefore = historyData.length > 0;
+                    
+                    // 히스토리가 있으면 회차 정보 표시
+                    if (hasDrawnBefore) {
+                        document.getElementById('drawInfo').style.display = 'block';
+                        document.getElementById('roundNumber').textContent = currentRound;
+                    }
+                    
                     updateHistoryDisplay();
                     
                     // 히스토리에서 제외된 역들 복원
@@ -678,6 +686,16 @@
                 return;
             }
 
+            // 첫 추첨이면 회차 정보를 표시
+            if (!hasDrawnBefore) {
+                hasDrawnBefore = true;
+                document.getElementById('drawInfo').style.display = 'block';
+            }
+
+            // 회차 증가
+            currentRound++;
+            document.getElementById('roundNumber').textContent = currentRound;
+
             // 2개 역 랜덤 선택
             const shuffled = [...availableStations].sort(() => Math.random() - 0.5);
             drawnStations = shuffled.slice(0, 2);
@@ -704,10 +722,6 @@
             updateExcludedCount();
             updateHistoryDisplay();
             saveData();
-
-            // 다음 회차로 증가
-            currentRound++;
-            document.getElementById('roundNumber').textContent = currentRound;
 
             // 추첨 가능한 역이 2개 미만이면 버튼 비활성화
             const remainingStations = stations.filter(station => !excludedStations.has(station.name));
@@ -832,8 +846,16 @@
                     
                     if (Array.isArray(importedData) && importedData.length > 0) {
                         historyData = importedData;
-                        currentRound = historyData.length + 1;
-                        document.getElementById('roundNumber').textContent = currentRound;
+                        currentRound = historyData.length;
+                        hasDrawnBefore = historyData.length > 0;
+                        
+                        // 히스토리가 있으면 회차 정보 표시
+                        if (hasDrawnBefore) {
+                            document.getElementById('drawInfo').style.display = 'block';
+                            document.getElementById('roundNumber').textContent = currentRound;
+                        } else {
+                            document.getElementById('drawInfo').style.display = 'none';
+                        }
                         
                         // 제외 목록 업데이트
                         excludedStations.clear();
@@ -865,8 +887,9 @@
         function clearHistory() {
             if (confirm('정말로 모든 히스토리를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
                 historyData = [];
-                currentRound = 1;
-                document.getElementById('roundNumber').textContent = currentRound;
+                currentRound = 0;
+                hasDrawnBefore = false;
+                document.getElementById('drawInfo').style.display = 'none';
                 
                 // 히스토리 기반 제외 목록 초기화 (수동 제외는 유지)
                 excludedStations.clear();
